@@ -86,6 +86,7 @@ const uint8_t msign[64] = {
 };
 
 
+
 void gpio_conf(){
     //FLASH LED
     gpio_init(PICO_DEFAULT_LED_PIN);
@@ -155,8 +156,7 @@ bool Freq_Timer_Callback(struct repeating_timer *t){
         }else{
             newfreq+=(frequency-newfreq)/4;
             set_freq(newfreq);            
-        }
-    
+        }    
     }
     
     if ( (feature>1) && (feature<=5) ){
@@ -169,7 +169,7 @@ bool Freq_Timer_Callback(struct repeating_timer *t){
         set_freq(newfreq);
     }
     
-   //display timer
+    //display timer
     if(dtimer>0)dtimer--;
 
     return 1;
@@ -268,7 +268,7 @@ int main() {
     
     //init freq sensor
     printf("init Freq Sensor \n");
-    i = tofInit(0, I2C_FREQ_DEV_ADDR, 1); // set short range mode (up to 2m)	
+    i = tofInit( I2C_FREQ_DEV_ADDR, 0); // set short range mode (up to 2m)	
     if (i != 1)	{		
       return -1; // problem - quit	
     }	
@@ -280,7 +280,7 @@ int main() {
     //init Vol sensor  
     printf("init Vol Sensor \n");
     gpio_put(VOL_XSHUT,1); //enable VOL sensor
-    i = tofInit(0,I2C_VOL_DEV_ADDR , 1); // set short range mode (up to 2m)	
+    i = tofInit(I2C_VOL_DEV_ADDR , 0); // set short range mode (up to 2m)	
     if (i != 1)	{		
       return -1; // problem - quit	
     }	
@@ -325,6 +325,7 @@ int main() {
            FtofState=0;
         }
 
+//        printf("H:%i v:%i\n",fDistance,vDistance);
 
         // Update display
         if(dtimer==0){
@@ -337,7 +338,6 @@ int main() {
                   sprintf(dtemp,"Vol   %i",volume);
             }
           }  
-//          drawStatusCentered(dtemp,25,2);
           drawStatusBorder(dtemp,25,2);
           if (fmute){
               sprintf(dtemp,"Freq  -   ");
@@ -362,7 +362,7 @@ int main() {
           sprintf(dtemp,"Mode  %s",features[feature]);
           drawStatusBorder(dtemp,55,2);
           
-
+          //refresh display from buffer
           SSD1306_sendBuffer();
           dtimer=5;
         }

@@ -7,6 +7,7 @@
 #define I2C_SDA_PIN 18
 #define I2C_SCL_PIN 19
 
+//#define I2C_BAUDRATE 200000 //400Khz
 #define I2C_BAUDRATE 400000 //400Khz
 
 #define VOL_XSHUT 20 //gpio wired to vol xshut pin
