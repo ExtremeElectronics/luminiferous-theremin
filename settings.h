@@ -2,6 +2,11 @@
 #define I2C_DEFAULT_DEV_ADDR 0x29
 #define I2C_FREQ_DEV_ADDR 0x39
 
+//speaker
+#define soundIO1 6
+#define soundIO2 7
+
+
 //I2c Settings
 #define I2CInst i2c1
 #define I2C_SDA_PIN 18
@@ -10,9 +15,12 @@
 //#define I2C_BAUDRATE 200000 //400Khz
 #define I2C_BAUDRATE 400000 //400Khz
 
+//TOF xshut used to change I2C addrss
 #define VOL_XSHUT 20 //gpio wired to vol xshut pin
-#define BUTTON1 15
-#define BUTTON2 14
+
+//buttons
+#define BUTTON1 17
+#define BUTTON2 16
 
 //over clock speed
 #define PICOCLOCK 250000 

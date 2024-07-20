@@ -267,7 +267,7 @@ int main() {
     int model, revision;
     
     //init freq sensor
-    printf("init Freq Sensor \n");
+    printf("\nInit Freq Sensor \n");
     i = tofInit( I2C_FREQ_DEV_ADDR, 0); // set short range mode (up to 2m)	
     if (i != 1)	{		
       return -1; // problem - quit	
@@ -278,7 +278,7 @@ int main() {
     printf("Revision ID - %d\n", revision);
 
     //init Vol sensor  
-    printf("init Vol Sensor \n");
+    printf("\nInit Vol Sensor \n");
     gpio_put(VOL_XSHUT,1); //enable VOL sensor
     i = tofInit(I2C_VOL_DEV_ADDR , 0); // set short range mode (up to 2m)	
     if (i != 1)	{		

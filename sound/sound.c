@@ -45,12 +45,6 @@ uint8_t fmute=0;
 extern float volume;
 extern uint8_t wave; //wave shape selection ??? remove
 
-//must be pins on the same slice
-//#define soundIO1 6
-//#define soundIO2 7
-#define soundIO1 16
-#define soundIO2 17
-
 uint PWMslice;
 
 const uint32_t trigg = 1; //The transaction count
@@ -62,29 +56,19 @@ int ctl_dma_chan;
 uint8_t old_ws,old_vol;
 
 int ptimer ; //dma pacing timer
-/*
-void selectwaveshape(int ws){
-   int a;
-   for(a=0;a<WAVTABLESIZE;a++)sbuffer[a]=waveshapes[ws][a]+65536*waveshapes[ws][a];
-}
-*/
 
 void selectwaveshape(uint8_t ws,uint8_t vol){
    if((old_ws==ws) && (old_vol==vol)){
        return;
    }else{   
      if(vol==0){
-//       DoMute(1);
        vmute=1;     
      }else{
-//       if(mute==1)DoMute(0);
        vmute=0;
        int a;
        int x ;
        uint8_t y;
 
-    //   printf("ws %i,%i\n",ws,vol);
-       
        union{
           uint32_t x;
           struct{
@@ -124,7 +108,8 @@ void SetPWM(void){
     PWMslice=pwm_gpio_to_slice_num(soundIO1);
  
     //setup pwm
-    pwm_set_clkdiv(PWMslice,4);//31mhz
+//    pwm_set_clkdiv(PWMslice,4);//31mhz
+    pwm_set_clkdiv(PWMslice,1);//loads of mhz
     pwm_set_both_levels(PWMslice,128,128);
     pwm_set_output_polarity(PWMslice,true,false);
     pwm_set_wrap (PWMslice, 256);
