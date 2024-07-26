@@ -27,15 +27,17 @@
 #include "sound/sound.h"
 #include "display/display.h"
 #include "midi.c"
+#include "mapping.c"
 
 #include "settings.h"
 
 #include "sound/waveshapes.h"
 
-#define MINDISTANCE 20
-#define MAXDISTANCE 500
+#define MINDISTANCE 30
+#define MAXDISTANCE 350
 #define MAXDISTANCEV 300
 
+#define SMOOTHING 2.7 //was 4 larger smoother/slower
 
 //globals
 float frequency=1000;
@@ -65,27 +67,10 @@ char  features[FEATUREMAX][30]={"Normal\0","Note Only\0","Wob Slow\0","Wob Med\0
 
 uint8_t wobulate=0;
 
-//Wobulator Sine
-const uint8_t msign[64] = {
-    0x7f,  0x8b,  0x98,  0xa4,
-    0xb0,  0xbb,  0xc6,  0xd0,
-    0xd9,  0xe2,  0xe9,  0xef,
-    0xf5,  0xf9,  0xfc,  0xfe,
-    0xff,  0xfe,  0xfc,  0xf9,
-    0xf5,  0xef,  0xe9,  0xe2,
-    0xd9,  0xd0,  0xc6,  0xbb,
-    0xb0,  0xa4,  0x98,  0x8b,
-    0x7f,  0x73,  0x66,  0x5a,
-    0x4e,  0x43,  0x38,  0x2e,
-    0x25,  0x1c,  0x15,  0x0f,
-    0x09,  0x05,  0x02,  0x00,
-    0x00,  0x00,  0x02,  0x05,
-    0x09,  0x0f,  0x15,  0x1c,
-    0x25,  0x2e,  0x38,  0x43,
-    0x4e,  0x5a,  0x66,  0x73
-};
-
-
+uint16_t vcnt=0;
+uint16_t fcnt=0;
+uint16_t vres=0;
+uint16_t fres=0;
 
 void gpio_conf(){
     //FLASH LED
@@ -114,7 +99,25 @@ void gpio_conf(){
 }
 
 void splash(){
-    printf("\n\nTheremin\n");
+    printf("\n                                                  ");
+    printf("\n                                                  ");
+    printf("\n                                                  ");
+    printf("\n                                                  ");
+    printf("\n      -                               -           ");
+    printf("\n       -                             -            ");
+    printf("\n        -                           -             ");
+    printf("\n         -                         -              ");
+    printf("\n           _______________________                ");
+    printf("\n          /     Luniniferous      \\               ");
+    printf("\n         /        Theremin         \\              ");
+    printf("\n         ---------------------------              ");
+    printf("\n                                                  ");
+    printf("\n                Extreme Kits                      ");
+    printf("\n                extkits.uk/lt                     ");
+    printf("\n                                                  ");
+    printf("\n      Copyright (c) 2024 Derek Woodroffe          ");
+    printf("\n                                                  ");
+    printf("\n\n");  
 }
 
 void init_I2C(void){
@@ -142,7 +145,7 @@ void init_I2C(void){
 bool Freq_Timer_Callback(struct repeating_timer *t){
     if (feature==0){
         if (abs(frequency-newfreq)>1){
-            newfreq+=(frequency-newfreq)/4;
+            newfreq+=(frequency-newfreq)/SMOOTHING;
             set_freq(newfreq);
         }
     }
@@ -175,23 +178,22 @@ bool Freq_Timer_Callback(struct repeating_timer *t){
     return 1;
 }
 
+
+//Distance to frequency and voice selection
 void DoDistanceF(uint16_t d){
     uint16_t f;
     if(d!=fdist_old){
       if (d < 4096){      
          if (d>MINDISTANCE && d<MAXDISTANCE){
-             frequency=500-(d-MINDISTANCE);
-             frequency=frequency*frequency/120;       
-             //f=d-MINDISTANCE;
-             //frequency=2100-f*4.2; //start at c7 down to c3'ish
+             frequency=farray[(MAXDISTANCE-MINDISTANCE)-(d-MINDISTANCE)-1];             
+//             printf("d%i,f%f\n",d,frequency);
              fmute=0;	 
-             //selectwaveshape(wave,volume);
              if(gpio_get(BUTTON1)==0){
-                 wave=((int)d/(MAXDISTANCE/WAVMAX));
-                 selectwaveshape(wave,volume);
+                printf("fb %i,%i,%i\n",d-MINDISTANCE,(MAXDISTANCE-MINDISTANCE),WAVMAX);
+                 wave=((d-MINDISTANCE )/(float)((MAXDISTANCE-MINDISTANCE)/WAVMAX));
                  if (wave>=WAVMAX)wave=WAVMAX-1;
+                 selectwaveshape(wave,volume);
              }
-
          }else{
              fmute=1;
          }
@@ -203,6 +205,7 @@ void DoDistanceF(uint16_t d){
     }
 }
 
+//Distance to Volume and Mode selection
 void DoDistanceV(uint16_t d){
     uint16_t v;
     if(d!=vdist_old){
@@ -229,7 +232,6 @@ void DoDistanceV(uint16_t d){
     DoMute(fmute==1 || vmute==1);
 }
 
-
 // ******************************** Main ************************************
 int main() {
     set_sys_clock_khz(PICOCLOCK, false);
@@ -255,7 +257,6 @@ int main() {
     drawStatusCentered(dtemp,1,1);
     sprintf(dtemp,"Theremin");
     drawStatusCentered(dtemp,10,1);
-
 
    //change default device address for freq sensor.
     printf("Change FREQ I2C address\n");
@@ -307,6 +308,7 @@ int main() {
            vDistance = readRangeContinuousMillimeters(I2C_VOL_DEV_ADDR);
            DoDistanceV(vDistance);
            VtofState=0;
+           vcnt++;
         }
         
         //Frequency
@@ -323,6 +325,7 @@ int main() {
            fDistance = readRangeContinuousMillimeters(I2C_FREQ_DEV_ADDR);
            DoDistanceF(fDistance);
            FtofState=0;
+           fcnt++;
         }
 
 //        printf("H:%i v:%i\n",fDistance,vDistance);
@@ -364,7 +367,15 @@ int main() {
           
           //refresh display from buffer
           SSD1306_sendBuffer();
-          dtimer=5;
+          
+          //every 100mS
+          dtimer=10;
+
+          fres=fcnt;
+          vres=vcnt;
+          fcnt=0;
+          vcnt=0;
+//          printf(" vc %i, vf %i \n",vres,fres);
         }
         sleep_ms(1);
     } 
