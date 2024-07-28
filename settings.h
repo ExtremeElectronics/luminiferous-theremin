@@ -19,8 +19,8 @@
 #define VOL_XSHUT 20 //gpio wired to vol xshut pin
 
 //buttons
-#define BUTTON1 17
-#define BUTTON2 16
+#define LEFT_BUTTON 17
+#define RIGHT_BUTTON 16
 
 //over clock speed
 #define PICOCLOCK 250000 
