@@ -13,7 +13,7 @@
 #include "../settings.h"
 #include "display.h"
 #include "font8x8.h"
-#include "telecow.h"
+//#include "extkits.h"
 
 #define FRAMEBUFFER_SIZE 1024
 
@@ -315,7 +315,7 @@ void SSD1306_background_image(unsigned char *bitmap){
 
 
 void drawStatusCentered(char * text,uint8_t anchor_y,uint8_t border){
-    SSD1306_fillRect( border, anchor_y, SSD1306_width-border*2, anchor_y+8,SSD1306_SUBTRACT);
+//    SSD1306_fillRect( border, anchor_y, SSD1306_width-border*2, anchor_y+8,SSD1306_SUBTRACT);
     uint8_t x,len;
     len=strlen(text)*8; //fontwidth 8
     x=(SSD1306_width-(border*2)-len)>>1;    
