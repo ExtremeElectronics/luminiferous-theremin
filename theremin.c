@@ -383,24 +383,24 @@ int main() {
     int model, revision;
     
     //init freq sensor
-    printf("\nInit Pitch Sensor \n");
+    printf("\nInit Right Sensor \n");
     i = tofInit( I2C_FREQ_DEV_ADDR, 0); // set short range mode (up to 0.5m)	
     if (i != 1)	{		
         return -1; // problem - quit	
     }	
-    printf("FREQUENCY VL53L0X device successfully opened on %x .\n",I2C_FREQ_DEV_ADDR);	
+    printf("Right VL53L0X device successfully opened on %x .\n",I2C_FREQ_DEV_ADDR);	
     i = tofGetModel(&model, &revision,I2C_FREQ_DEV_ADDR);	
     printf("Model ID - %d\n", model);	
     printf("Revision ID - %d\n", revision);
 
     //init Vol sensor  
-    printf("\nInit Vol Sensor \n");
+    printf("\nInit Left Sensor \n");
     gpio_put(VOL_XSHUT,1); //enable VOL sensor
     i = tofInit(I2C_VOL_DEV_ADDR , 0); // set short range mode (up to 0.5m)	
     if (i != 1)	{		
         return -1; // problem - quit	
     }	
-    printf("VOLUME VL53L0X device successfully opened on %x .\n",I2C_VOL_DEV_ADDR);	
+    printf("Left VL53L0X device successfully opened on %x .\n",I2C_VOL_DEV_ADDR);	
     i = tofGetModel(&model, &revision,I2C_VOL_DEV_ADDR);	
     printf("Model ID - %d\n", model);	
     printf("Revision ID - %d\n", revision);
