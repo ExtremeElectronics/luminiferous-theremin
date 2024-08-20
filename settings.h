@@ -24,3 +24,6 @@
 
 //over clock speed
 #define PICOCLOCK 250000 
+
+//neopixel
+#define PIXEL 8

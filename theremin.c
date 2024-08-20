@@ -24,14 +24,16 @@
 #include "pico/multicore.h"
 #include <VL53L0X/tof.h>
 
+#include "settings.h"
+
 #include "sound/sound.h"
 #include "display/display.h"
 #include "midi.c"
 #include "mapping.c"
 
 #include "flash.c"
+#include "neopixel.c"
 
-#include "settings.h"
 #include "display/assets.h"
 #include "sound/waveshapes.h"
 
@@ -58,24 +60,27 @@ int8_t VtofState=0;
 int8_t FtofState=0;
 
 uint16_t dtimer=10000; //stop display updates
+uint16_t ltimer=10; //led timer
 
 uint16_t fdist_old=0;
 uint16_t vdist_old=0;
 
 uint8_t sinister=0;
 
-//features
-#define FEATUREMAX 5
-
-uint8_t feature=0;
-char  features[FEATUREMAX][30]={"Normal\0","Note Only\0","Wob Slow\0","Wob Med\0","Wob Fast\0"};
+//Modes
+#define MODEMAX 6 //Vibrato need more work.
+uint8_t mode=0;
+char  modes[MODEMAX][30]={"Normal\0","Note Only\0","Wob Slow\0","Wob Med\0","Wob Fast\0","Vibrato"};
 
 uint8_t wobulate=0;
+uint8_t vibrato=0;
 
 uint16_t vcnt=0;
 uint16_t fcnt=0;
 uint16_t vres=0;
 uint16_t fres=0;
+
+uint8_t debug=0;
 
 char timecompiled[20];
 
@@ -137,9 +142,9 @@ void splash(){
     drawStatusCentered(dtemp,10,1);
     drawStatusCentered(timecompiled,20,1);
     if(sinister==0){
-        drawStatusCentered("F-Right",30,1);
+        drawStatusCentered("P-Right",30,1);
     }else{
-        drawStatusCentered("F-Left",30,1);
+        drawStatusCentered("P-Left",30,1);
     }      
     //refresh display from buffer
     SSD1306_sendBuffer();
@@ -172,7 +177,7 @@ void get_flash_settings(void){
      //usable data starts at 2
      sinister=fdata[2];
      wave=fdata[3];
-     feature=fdata[4];
+     mode=fdata[4];
   }
 
 }
@@ -180,7 +185,7 @@ void get_flash_settings(void){
 void save_flash_settings(void){
     fdata[2]=sinister;
     fdata[3]=wave;
-    fdata[4]=feature;;
+    fdata[4]=mode;;
     write_flash();
 }
 
@@ -191,39 +196,69 @@ void save_flash_settings(void){
 //   Sound_Loop();
 //}
 
-//****************************** smooth out f changes ******************
+
+void selectwaveshapeV(uint8_t wave,uint8_t volume){
+    if (mode==5){
+        if (vibrato>32){
+            selectwaveshape(wave,volume);
+        }else{
+            selectwaveshape(wave,volume>>1);
+        }
+    }else{
+        selectwaveshape(wave,volume);    
+    }
+}
+
+
+//****************************** smooth out Frequency changes ******************
 bool Freq_Timer_Callback(struct repeating_timer *t){
-    if (feature==0){
+    if ((mode==0) || (mode==5) ){
         if (abs(frequency-newfreq)>1){
             newfreq+=(frequency-newfreq)/SMOOTHING;
             set_freq(newfreq);
         }
     }
     
-    if (feature==1){
-        int err;
-        err=nearestNote(frequency);
-        if (err!=NONOTEFOUND){
-            newfreq=err;
+    if (mode==1){
+        int nf;
+        nf=nearestNoteR(frequency);
+//        printf("%i,%f\n",nf,frequency);
+        if (nf!=NONOTEFOUND){
+            newfreq=nf;
             set_freq(newfreq);
         }else{
-            newfreq+=(frequency-newfreq)/4;
-            set_freq(newfreq);            
+//            set_freq(newfreq);
+        //only set note if its near a note, provides guard band
+//            newfreq+=(frequency-newfreq)/4;
+//            set_freq(newfreq);            
         }    
     }
     
-    if ( (feature>1) && (feature<=5) ){
+    if ( (mode>1) && (mode<=4) ){
         newfreq=frequency+msign[wobulate]-128;
-        if (feature==2)wobulate+=2;
-        if (feature==3)wobulate+=4;
-        if (feature==4)wobulate+=8;
+        if (mode==2)wobulate+=2;
+        if (mode==3)wobulate+=4;
+        if (mode==4)wobulate+=8;
 
         if (wobulate>63) wobulate=0;
         set_freq(newfreq);
     }
     
+    if (mode==5){
+       vibrato+=4;
+       if (vibrato>64){ 
+           vibrato=0;
+           selectwaveshapeV(wave,volume);
+       }
+       if (vibrato==33){
+           selectwaveshapeV(wave,volume);
+       }
+    }
+    
     //display timer
     if(dtimer>0)dtimer--;
+    // led timer
+    if(ltimer>0)ltimer--;
 
     return 1;
 }
@@ -235,6 +270,7 @@ void DoFrequency(uint16_t d){
     if(d!=fdist_old){
         if (d < 4096){      
             if (d>MINDISTANCE && d<MAXDISTANCE){
+//                printf(" %i,%i\n",(MAXDISTANCE-MINDISTANCE)-(d-MINDISTANCE)-1,d);
                 frequency=farray[(MAXDISTANCE-MINDISTANCE)-(d-MINDISTANCE)-1];             
                 fmute=0;	 
             }else{fmute=1;}
@@ -254,9 +290,10 @@ void DoVolume(uint16_t d){
                 volume=256-(v*256/(MAXDISTANCEV-MINDISTANCE));
             }else{volume=0;}   
         }else{volume=0;}
-        selectwaveshape(wave,volume);              
+        selectwaveshapeV(wave,volume);              
     }else{vdist_old=d;}
     DoMute(fmute==1 || vmute==1);
+    
 }
 
 
@@ -268,7 +305,7 @@ void DoVoice(uint16_t d){
             printf("fb %i,%i,%i\n",d-MINDISTANCE,(MAXDISTANCE-MINDISTANCE),WAVMAX);
             wave=((d-MINDISTANCE )/(float)((MAXDISTANCE-MINDISTANCE)/WAVMAX));
             if (wave>=WAVMAX)wave=WAVMAX-1;
-            selectwaveshape(wave,volume);
+            selectwaveshapeV(wave,volume);
             save_flash_settings();
         }
     }
@@ -279,9 +316,9 @@ void DoMode(uint16_t d){
     uint16_t v;
     if (d < 4096){
         if (d>MINDISTANCE && d<MAXDISTANCEV){
-            feature=((int)d/(MAXDISTANCEV/FEATUREMAX));
-            if (feature>=FEATUREMAX)feature=FEATUREMAX-1;
-            printf("Fe:%i\n",feature);
+            mode=((int)d/(MAXDISTANCEV/MODEMAX));
+            if (mode>=MODEMAX)mode=MODEMAX-1;
+            printf("Fe:%i\n",modes);
             save_flash_settings();
         }   
     }
@@ -303,18 +340,14 @@ int main() {
     printf("Display Init\n");
     SSD1306_init(0x3C,SSD1306_W128xH64);
 
-/*
-    extern char __flash_binary_end;
-    uintptr_t end = (uintptr_t) &__flash_binary_end;
-    printf("Binary ends at %08x\n", end);
-
-    print_flash();
-*/
+    //init neopixel
+    init_NeoPixel();
 
     //saved settings and POR buttons
     if( (gpio_get(LEFT_BUTTON)==0) && (gpio_get(RIGHT_BUTTON)==0) ){
         printf("Settings Reset\n");
         save_flash_settings();
+        debug=1;
     }else{  
         //getsaved settings
         get_flash_settings();
@@ -345,13 +378,13 @@ int main() {
     SetDeviceAddress(I2C_DEFAULT_DEV_ADDR,I2C_FREQ_DEV_ADDR);  
 
     int i;
-    int rDistance;
-    int lDistance;
+    uint16_t rDistance;
+    uint16_t lDistance;
     int model, revision;
     
     //init freq sensor
-    printf("\nInit Freq Sensor \n");
-    i = tofInit( I2C_FREQ_DEV_ADDR, 0); // set short range mode (up to 2m)	
+    printf("\nInit Pitch Sensor \n");
+    i = tofInit( I2C_FREQ_DEV_ADDR, 0); // set short range mode (up to 0.5m)	
     if (i != 1)	{		
         return -1; // problem - quit	
     }	
@@ -363,7 +396,7 @@ int main() {
     //init Vol sensor  
     printf("\nInit Vol Sensor \n");
     gpio_put(VOL_XSHUT,1); //enable VOL sensor
-    i = tofInit(I2C_VOL_DEV_ADDR , 0); // set short range mode (up to 2m)	
+    i = tofInit(I2C_VOL_DEV_ADDR , 0); // set short range mode (up to 0.5m)	
     if (i != 1)	{		
         return -1; // problem - quit	
     }	
@@ -388,6 +421,7 @@ int main() {
         }
         if (VtofState==2){
             lDistance = readRangeContinuousMillimeters(I2C_VOL_DEV_ADDR);
+            if (debug) printf("Left %i\n",lDistance);
             //DoDistanceV(vDistance);
             if(gpio_get(RIGHT_BUTTON)==1){
                 if (!sinister){
@@ -414,6 +448,7 @@ int main() {
         }
         if (FtofState==2){
             rDistance = readRangeContinuousMillimeters(I2C_FREQ_DEV_ADDR);
+            if (debug) printf("Right %i\n",rDistance);
             //DoDistanceF(fDistance);
             if(gpio_get(LEFT_BUTTON)==1){
                 if(!sinister){
@@ -427,6 +462,7 @@ int main() {
             FtofState=0;
             fcnt++;
         }
+
 
 //        printf("H:%i v:%i\n",fDistance,vDistance);
 
@@ -452,18 +488,18 @@ int main() {
             }  
             drawStatusBorder(dtemp,25,0);
             if (fmute){
-                sprintf(dtemp,"Freq  -   ");
+                sprintf(dtemp,"Pitch -   ");
             }else{    
                 int mn;
-                if ((feature>1) && (feature<=5)) { //no note when wobulating
+                if ((mode>1) && (mode<=5)) { //no note when wobulating
                     mn=-1;
                 }else{  
                     mn=getMidiNote(newfreq);
                 }  
                 if (mn==-1){  
-                    sprintf(dtemp,"Freq  %i",(int)newfreq);
+                    sprintf(dtemp,"Pitch %i",(int)newfreq);
                 }else{
-                    sprintf(dtemp,"Freq  %i %s ",(int)newfreq,mnotes[mn]);
+                    sprintf(dtemp,"Pitch %i %s ",(int)newfreq,mnotes[mn]);
                 }    
             }
             drawStatusBorder(dtemp,35,0);
@@ -471,12 +507,12 @@ int main() {
             sprintf(dtemp,"Voice %s",wavenames[wave]);
             drawStatusBorder(dtemp,45,0);
           
-            sprintf(dtemp,"Mode  %s",features[feature]);
+            sprintf(dtemp,"Mode  %s",modes[mode]);
             drawStatusBorder(dtemp,55,0);
           
             //refresh display from buffer
             SSD1306_sendBuffer();
-          
+                    
             //then every 100mS
             dtimer=10;
 
@@ -486,8 +522,25 @@ int main() {
             vcnt=0;
 //          printf(" vc %i, vf %i \n",vres,fres);
           }
-          sleep_ms(1);
+
+          if(ltimer==0){
+              //update neopixel
+              if((mute==1) || (volume==0)){
+                  put_pixel(0);
+              }else{
+                  if(!sinister){
+                      neopixel_fromline(rDistance,volume);
+    //                  printf("%i,%i\n",rDistance,volume);
+                  }else{
+                      neopixel_fromline(lDistance,volume);
+    //                  printf("%i,%i\n",lDistance,volume);
+                  }
+              } 
+              ltimer=5;
+          }    
+          sleep_ms(0.1);
      } 
 }
+
 
 

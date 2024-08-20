@@ -4,6 +4,7 @@
 #define MIDINEAR 8
 #define NONOTEFOUND 0x9999
 
+/*
 //note frequencies
 uint16_t mfrequency[MNOTES]={
     78,82,87,92,98,104,110,117,123,131,139,147,
@@ -13,6 +14,74 @@ uint16_t mfrequency[MNOTES]={
     1245,1319,1397,1480,1568,1661,1760,1865,1976,2093,2217,
     2349
 };
+*/
+
+//Low note, frequency, high note
+//Low note, frequency, high note
+uint16_t mfrequency[61][3]={
+        {58,78,97},
+    {81,82,83},
+    {85,87,88},
+    {90,92,93},
+    {96,98,99},
+    {102,104,105},
+    {108,110,111},
+    {115,117,118},
+    {121,123,124},
+    {129,131,133},
+    {137,139,141},
+    {145,147,149},
+    {153,156,158},
+    {162,165,167},
+    {172,175,177},
+    {182,185,187},
+    {193,196,198},
+    {205,208,211},
+    {217,220,223},
+    {229,233,236},
+    {243,247,250},
+    {258,262,265},
+    {273,277,280},
+    {289,294,298},
+    {306,311,315},
+    {325,330,334},
+    {344,349,353},
+    {364,370,375},
+    {386,392,397},
+    {409,415,420},
+    {433,440,446},
+    {459,466,472},
+    {487,494,501},
+    {515,523,530},
+    {546,554,561},
+    {578,587,595},
+    {613,622,630},
+    {649,659,668},
+    {688,698,707},
+    {729,740,750},
+    {773,784,795},
+    {819,831,842},
+    {867,880,892},
+    {919,932,945},
+    {974,988,1002},
+    {1032,1047,1061},
+    {1093,1109,1124},
+    {1158,1175,1191},
+    {1227,1245,1262},
+    {1300,1319,1337},
+    {1377,1397,1416},
+    {1459,1480,1500},
+    {1546,1568,1590},
+    {1637,1661,1684},
+    {1735,1760,1784},
+    {1838,1865,1891},
+    {1948,1976,2003},
+    {2063,2093,2122},
+    {2186,2217,2248},
+    {2316,2349,2382},
+    {2457,2493,2529},
+};
+
 
 //notes against frequencies
 char mnotes[MNOTES][6]={
@@ -38,38 +107,41 @@ uint16_t mfmid[MNOTES+1]={
 int getMidiNote(uint16_t f){
    int x;
    for (x=0;x<MNOTES;x++){
-      if(f<=mfrequency[x]+MIDIACC) break;
+      if(f<=mfrequency[x][1]+MIDIACC) break;
    }
-   if((f>=mfrequency[x]-MIDIACC) && (f<=mfrequency[x]+MIDIACC) ){
+   if((f>=mfrequency[x][1]-MIDIACC) && (f<=mfrequency[x][1]+MIDIACC) ){
      return x;
    }else{
      return -1;
    }      
 }
 
-//returns frequency of nearest note if within MIDINEAR
-/*int nearestNote(uint16_t f){
+int nearestNote(uint16_t f){
     int x;
     int r=NONOTEFOUND;
     for (x=0;x<MNOTES;x++){
-       if((f>=mfrequency[x]-MIDINEAR) && (f<=mfrequency[x]+MIDINEAR) ){
-           r=mfrequency[x];
+       if((f>=mfmid[x]) && (f<=mfmid[x+1]) ){
+           r=mfrequency[x][1];
            break;
        }   
     }
     return r;
 
 }
-*/
 
-int nearestNote(uint16_t f){
+
+int nearestNoteR(uint16_t f){
     int x;
     int r=NONOTEFOUND;
     for (x=0;x<MNOTES;x++){
-       if((f>=mfmid[x]) && (f<=mfmid[x+1]) ){
-           r=mfrequency[x];
+       if((f>=mfrequency[x][0]) && (f<=mfrequency[x][2]) ){
+           r=mfrequency[x][1];
            break;
-       }   
+       }
+//       if(f>mfrequency[x][2]){
+//          r=NONOTEFOUND;
+//          break;
+//       }   
     }
     return r;
 
