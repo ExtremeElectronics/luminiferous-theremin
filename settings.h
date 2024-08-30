@@ -1,6 +1,6 @@
-#define I2C_VOL_DEV_ADDR 0x29
+#define I2C_LEFT_DEV_ADDR 0x29
 #define I2C_DEFAULT_DEV_ADDR 0x29
-#define I2C_FREQ_DEV_ADDR 0x39
+#define I2C_RIGHT_DEV_ADDR 0x39
 
 //speaker
 #define soundIO1 6
@@ -16,7 +16,7 @@
 #define I2C_BAUDRATE 400000 //400Khz
 
 //TOF xshut used to change I2C addrss
-#define VOL_XSHUT 20 //gpio wired to vol xshut pin
+#define LEFT_XSHUT 20 //gpio wired to vol xshut pin
 
 //buttons
 #define LEFT_BUTTON 17

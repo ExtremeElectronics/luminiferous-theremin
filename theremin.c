@@ -38,7 +38,7 @@
 #include "sound/waveshapes.h"
 
 #define MINDISTANCE 30
-#define MAXDISTANCE 350
+#define MAXDISTANCE 450 //was 350
 #define MAXDISTANCEV 300
 
 #define SMOOTHING 2.7 //was 4 larger smoother/slower
@@ -56,8 +56,8 @@ float newfreq=1000;
 char dtemp[100];
 uint8_t firstdisplay=0;
 
-int8_t VtofState=0;
-int8_t FtofState=0;
+int8_t LtofState=0;
+int8_t RtofState=0;
 
 uint16_t dtimer=10000; //stop display updates
 uint16_t ltimer=10; //led timer
@@ -68,7 +68,7 @@ uint16_t vdist_old=0;
 uint8_t sinister=0;
 
 //Modes
-#define MODEMAX 6 //Vibrato need more work.
+#define MODEMAX 5 //Vibrato needs more work.
 uint8_t mode=0;
 char  modes[MODEMAX][30]={"Normal\0","Note Only\0","Wob Slow\0","Wob Med\0","Wob Fast\0","Vibrato"};
 
@@ -93,9 +93,9 @@ void gpio_conf(){
     gpio_put(PICO_DEFAULT_LED_PIN, 0);
 
     // Vol sensor XSHUT 
-    gpio_init(VOL_XSHUT);
-    gpio_set_dir(VOL_XSHUT, GPIO_OUT);
-    gpio_put(VOL_XSHUT,0); //disable VOL sensor
+    gpio_init(LEFT_XSHUT);
+    gpio_set_dir(LEFT_XSHUT, GPIO_OUT);
+    gpio_put(LEFT_XSHUT,0); //disable LEFT sensor
     
     //LEFT_BUTTON
     gpio_init(LEFT_BUTTON);
@@ -170,16 +170,15 @@ void init_I2C(void){
 
 // flash settings
 void get_flash_settings(void){
-  if (read_flash()){
-     //if bad magic format flash page
-     format_flash();
-  }else{
-     //usable data starts at 2
-     sinister=fdata[2];
-     wave=fdata[3];
-     mode=fdata[4];
-  }
-
+    if (read_flash()){
+        //if bad magic format flash page
+        format_flash();
+    }else{
+        //usable data starts at 2
+        sinister=fdata[2];
+        wave=fdata[3];
+        mode=fdata[4];
+    }
 }
 
 void save_flash_settings(void){
@@ -226,12 +225,7 @@ bool Freq_Timer_Callback(struct repeating_timer *t){
         if (nf!=NONOTEFOUND){
             newfreq=nf;
             set_freq(newfreq);
-        }else{
-//            set_freq(newfreq);
-        //only set note if its near a note, provides guard band
-//            newfreq+=(frequency-newfreq)/4;
-//            set_freq(newfreq);            
-        }    
+        }        
     }
     
     if ( (mode>1) && (mode<=4) ){
@@ -263,13 +257,13 @@ bool Freq_Timer_Callback(struct repeating_timer *t){
     return 1;
 }
 
-
 //Distance to frequency and voice selection
 void DoFrequency(uint16_t d){
     uint16_t f;
     if(d!=fdist_old){
         if (d < 4096){      
-            if (d>MINDISTANCE && d<MAXDISTANCE){
+            if (d<MINDISTANCE)d=MINDISTANCE;
+            if (d>=MINDISTANCE && d<MAXDISTANCE){
 //                printf(" %i,%i\n",(MAXDISTANCE-MINDISTANCE)-(d-MINDISTANCE)-1,d);
                 frequency=farray[(MAXDISTANCE-MINDISTANCE)-(d-MINDISTANCE)-1];             
                 fmute=0;	 
@@ -285,23 +279,26 @@ void DoVolume(uint16_t d){
     uint16_t v;
     if(d!=vdist_old){
         if (d < 4096){
-            if (d>MINDISTANCE && d<MAXDISTANCEV){
-                v=d-MINDISTANCE;
-                volume=256-(v*256/(MAXDISTANCEV-MINDISTANCE));
+            if (d<MINDISTANCE)d=MINDISTANCE;
+            if (d>=MINDISTANCE && d<MAXDISTANCEV){
+                v=d-MINDISTANCE+1;
+                volume=255-(v*255/(MAXDISTANCEV-MINDISTANCE));
+//        printf("Vol:d:%i MD:%i v:%i volume:%i\n",d,MINDISTANCE,v,volume);
             }else{volume=0;}   
         }else{volume=0;}
         selectwaveshapeV(wave,volume);              
-    }else{vdist_old=d;}
+    } //else{vdist_old=d;}
+    vdist_old=d;
     DoMute(fmute==1 || vmute==1);
     
 }
-
 
 //voice selection
 void DoVoice(uint16_t d){
     uint16_t f;
     if (d < 4096){      
-        if (d>MINDISTANCE && d<MAXDISTANCE){
+        if (d<MINDISTANCE)d=MINDISTANCE;
+        if (d>=MINDISTANCE && d<MAXDISTANCE){
             printf("fb %i,%i,%i\n",d-MINDISTANCE,(MAXDISTANCE-MINDISTANCE),WAVMAX);
             wave=((d-MINDISTANCE )/(float)((MAXDISTANCE-MINDISTANCE)/WAVMAX));
             if (wave>=WAVMAX)wave=WAVMAX-1;
@@ -315,7 +312,8 @@ void DoVoice(uint16_t d){
 void DoMode(uint16_t d){
     uint16_t v;
     if (d < 4096){
-        if (d>MINDISTANCE && d<MAXDISTANCEV){
+        if (d<MINDISTANCE)d=MINDISTANCE;
+        if (d>=MINDISTANCE && d<MAXDISTANCEV){
             mode=((int)d/(MAXDISTANCEV/MODEMAX));
             if (mode>=MODEMAX)mode=MODEMAX-1;
             printf("Fe:%i\n",modes);
@@ -368,14 +366,9 @@ int main() {
 
     printf("**************** STARTING **************** \n\n");
 
-
-//    multicore_launch_core1(Core1Main);
-//    printf("**************** STARTING Core 1 **************** \n\n");
-
-
    //change default device address for freq sensor.
-    printf("Change FREQ I2C address\n");
-    SetDeviceAddress(I2C_DEFAULT_DEV_ADDR,I2C_FREQ_DEV_ADDR);  
+    printf("Change RIGHT I2C address\n");
+    SetDeviceAddress(I2C_DEFAULT_DEV_ADDR,I2C_RIGHT_DEV_ADDR);  
 
     int i;
     uint16_t rDistance;
@@ -384,24 +377,24 @@ int main() {
     
     //init freq sensor
     printf("\nInit Right Sensor \n");
-    i = tofInit( I2C_FREQ_DEV_ADDR, 0); // set short range mode (up to 0.5m)	
+    i = tofInit( I2C_RIGHT_DEV_ADDR, 0); // set short range mode (up to 0.5m)	
     if (i != 1)	{		
         return -1; // problem - quit	
     }	
-    printf("Right VL53L0X device successfully opened on %x .\n",I2C_FREQ_DEV_ADDR);	
-    i = tofGetModel(&model, &revision,I2C_FREQ_DEV_ADDR);	
+    printf("Right VL53L0X device successfully opened on %x .\n",I2C_RIGHT_DEV_ADDR);	
+    i = tofGetModel(&model, &revision,I2C_RIGHT_DEV_ADDR);	
     printf("Model ID - %d\n", model);	
     printf("Revision ID - %d\n", revision);
 
     //init Vol sensor  
     printf("\nInit Left Sensor \n");
-    gpio_put(VOL_XSHUT,1); //enable VOL sensor
-    i = tofInit(I2C_VOL_DEV_ADDR , 0); // set short range mode (up to 0.5m)	
+    gpio_put(LEFT_XSHUT,1); //enable LEFT sensor
+    i = tofInit(I2C_LEFT_DEV_ADDR , 0); // set short range mode (up to 0.5m)	
     if (i != 1)	{		
         return -1; // problem - quit	
     }	
-    printf("Left VL53L0X device successfully opened on %x .\n",I2C_VOL_DEV_ADDR);	
-    i = tofGetModel(&model, &revision,I2C_VOL_DEV_ADDR);	
+    printf("Left VL53L0X device successfully opened on %x .\n",I2C_LEFT_DEV_ADDR);	
+    i = tofGetModel(&model, &revision,I2C_LEFT_DEV_ADDR);	
     printf("Model ID - %d\n", model);	
     printf("Revision ID - %d\n", revision);
 
@@ -409,18 +402,18 @@ int main() {
 
     while(1)
     {       
-        //Volume
-        if (VtofState==0){
-            tofStartReadDistance(I2C_VOL_DEV_ADDR);
-            VtofState++;
+        //Left
+        if (LtofState==0){
+            tofStartReadDistance(I2C_LEFT_DEV_ADDR);
+            LtofState++;
         }
-        if (VtofState==1){
-            if(is_ready(I2C_VOL_DEV_ADDR)){
-                 VtofState++;
+        if (LtofState==1){
+            if(is_ready(I2C_LEFT_DEV_ADDR)){
+                 LtofState++;
            }  
         }
-        if (VtofState==2){
-            lDistance = readRangeContinuousMillimeters(I2C_VOL_DEV_ADDR);
+        if (LtofState==2){
+            lDistance = readRangeContinuousMillimeters(I2C_LEFT_DEV_ADDR);
             if (debug) printf("Left %i\n",lDistance);
             //DoDistanceV(vDistance);
             if(gpio_get(RIGHT_BUTTON)==1){
@@ -432,22 +425,22 @@ int main() {
             }else{    
                 DoVoice(lDistance);
             }
-            VtofState=0;
+            LtofState=0;
             vcnt++;
         }
         
         //Frequency
-        if (FtofState==0){
-            tofStartReadDistance(I2C_FREQ_DEV_ADDR);
-            FtofState++;
+        if (RtofState==0){
+            tofStartReadDistance(I2C_RIGHT_DEV_ADDR);
+            RtofState++;
         }
-        if (FtofState==1){
-            if(is_ready(I2C_FREQ_DEV_ADDR)){
-                 FtofState++;
+        if (RtofState==1){
+            if(is_ready(I2C_RIGHT_DEV_ADDR)){
+                 RtofState++;
            }
         }
-        if (FtofState==2){
-            rDistance = readRangeContinuousMillimeters(I2C_FREQ_DEV_ADDR);
+        if (RtofState==2){
+            rDistance = readRangeContinuousMillimeters(I2C_RIGHT_DEV_ADDR);
             if (debug) printf("Right %i\n",rDistance);
             //DoDistanceF(fDistance);
             if(gpio_get(LEFT_BUTTON)==1){
@@ -459,12 +452,9 @@ int main() {
             }else{    
                 DoMode(rDistance);
             }    
-            FtofState=0;
+            RtofState=0;
             fcnt++;
         }
-
-
-//        printf("H:%i v:%i\n",fDistance,vDistance);
 
         // Update display
         if(dtimer==0){
@@ -521,24 +511,24 @@ int main() {
             fcnt=0;
             vcnt=0;
 //          printf(" vc %i, vf %i \n",vres,fres);
-          }
+        }
 
-          if(ltimer==0){
-              //update neopixel
-              if((mute==1) || (volume==0)){
-                  put_pixel(0);
-              }else{
-                  if(!sinister){
-                      neopixel_fromline(rDistance,volume);
+        if(ltimer==0){
+            //update neopixel
+            if((mute==1) || (volume==0)){
+                put_pixel(0);
+            }else{
+                if(!sinister){
+                     neopixel_fromline(rDistance,volume);
     //                  printf("%i,%i\n",rDistance,volume);
-                  }else{
-                      neopixel_fromline(lDistance,volume);
+                }else{
+                     neopixel_fromline(lDistance,volume);
     //                  printf("%i,%i\n",lDistance,volume);
-                  }
-              } 
-              ltimer=5;
-          }    
-          sleep_ms(0.1);
+                }
+            } 
+            ltimer=5;
+        }    
+        sleep_ms(0.1);
      } 
 }
 
