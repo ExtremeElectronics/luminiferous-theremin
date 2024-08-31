@@ -166,6 +166,9 @@ void init_I2C(void){
     gpio_pull_up(I2C_SCL_PIN);
 
     i2c_init(I2CInst, I2C_BAUDRATE);
+    
+    //needs this for reliability of starting tof sensors.    
+    sleep_ms(250);
 }
 
 // flash settings
@@ -379,7 +382,8 @@ int main() {
     printf("\nInit Right Sensor \n");
     i = tofInit( I2C_RIGHT_DEV_ADDR, 0); // set short range mode (up to 0.5m)	
     if (i != 1)	{		
-        return -1; // problem - quit	
+//        return -1; // problem - quit	
+        printf("Cant INIT RIGHT sensor\n");
     }	
     printf("Right VL53L0X device successfully opened on %x .\n",I2C_RIGHT_DEV_ADDR);	
     i = tofGetModel(&model, &revision,I2C_RIGHT_DEV_ADDR);	
@@ -391,7 +395,8 @@ int main() {
     gpio_put(LEFT_XSHUT,1); //enable LEFT sensor
     i = tofInit(I2C_LEFT_DEV_ADDR , 0); // set short range mode (up to 0.5m)	
     if (i != 1)	{		
-        return -1; // problem - quit	
+//        return -1; // problem - quit	
+        printf("Cant INIT LEFT sensor\n");
     }	
     printf("Left VL53L0X device successfully opened on %x .\n",I2C_LEFT_DEV_ADDR);	
     i = tofGetModel(&model, &revision,I2C_LEFT_DEV_ADDR);	
