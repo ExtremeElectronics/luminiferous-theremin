@@ -17,7 +17,7 @@ void init_vl53l0x(uint8_t iA){
     int model, revision;
     
     if (tofInit(iA,0)){
-        printf("laser init %i OK\n",iA);
+        printf("laser init %x OK\n",iA);
         int i = tofGetModel(&model, &revision,iA);	
         printf("Model ID - %d\n", model);	
         printf("Revision ID - %d\n", revision);
@@ -25,3 +25,5 @@ void init_vl53l0x(uint8_t iA){
 
 
 }
+
+

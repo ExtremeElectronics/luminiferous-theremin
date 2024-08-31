@@ -120,7 +120,7 @@ int tofInit( int i2cAddr, int bLongRange)
 */    
     iAddr=i2cAddr;
 
-    printf("I2C gpio init address%i \n",iAddr);
+    printf("I2C gpio init address %x \n",iAddr);
 
     return initSensor(bLongRange,iAddr); // finally, initialize the magic numbers in the sensor
 
@@ -807,12 +807,8 @@ uint16_t readRangeContinuousMillimeters(uint8_t iA)
     return range;
 }
 
-int is_ready(uint8_t iA){
-    iAddr=iA;
-    return !(readReg(SYSRANGE_START) & 0x01);
-}
 
-
+//start process dont wait
 int tofStartReadDistance(uint8_t iA)
 {
     iAddr=iA;
@@ -828,6 +824,13 @@ int tofStartReadDistance(uint8_t iA)
 
     writeReg(SYSRANGE_START, 0x01);
 }
+
+// is sensor ready with a measurement
+int is_ready(uint8_t iA){
+    iAddr=iA;
+    return !(readReg(SYSRANGE_START) & 0x01);
+}
+
 
 //
 // Read the current distance in mm
