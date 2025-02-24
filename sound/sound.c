@@ -28,9 +28,20 @@
 #include "waveshapes.c"
 #define WAVTABLESIZE 256
 
+
+union pwm32{
+    uint32_t x;
+    struct{
+        uint8_t al;
+        uint8_t ah;
+        uint8_t bl;
+        uint8_t bh;
+    };
+};
+
 //sound buffer
-uint32_t sbuffer[WAVTABLESIZE];
-uint32_t * bufferptr = &sbuffer[0];
+union pwm32 sbuffer[WAVTABLESIZE];
+union pwm32 * bufferptr = &sbuffer[0];
 
 uint32_t dmafreq=64000; //dma timer frequency
 
@@ -57,39 +68,29 @@ uint8_t old_ws,old_vol;
 
 int ptimer ; //dma pacing timer
 
+//select wavetable from MAXWAVETABLES and set volume 0-255
 void selectwaveshape(uint8_t ws,uint8_t vol){
    if((old_ws==ws) && (old_vol==vol)){
        return;
    }else{   
-     if(vol==0){
-       vmute=1;     
-     }else{
-       vmute=0;
-       int a;
-       int x ;
-       uint8_t y;
+       if(vol==0){
+           vmute=1;     
+       }else{
+           vmute=0;
+           uint16_t a;
+           int x ;
+           uint8_t y;
 
-       union{
-          uint32_t x;
-          struct{
-            uint8_t al;
-            uint8_t ah;
-            uint8_t bl;
-            uint8_t bh;
-          };
-       }sb;
-       
-       for(a=0;a<WAVTABLESIZE;a++){       
-           x=waveshapes[ws][a];
-           x=(x-128)*vol;
-           y=(x/256)+128;
-           sb.al=y;
-           sb.bl=y;
-           sbuffer[a]=sb.x;
-       }  
-     }
-     DoMute(vmute==1 || fmute==1);
+           for(a=0;a<WAVTABLESIZE;a++){       
+               x=waveshapes[ws][a];
+               x=(x-128)*vol;
+               y=(x>>8)+128;
+               sbuffer[a].al=y;
+               sbuffer[a].bl=y;
+           }  
 
+       }
+       DoMute(vmute==1 || fmute==1);
    }
    old_ws==ws;
    old_vol=vol;
@@ -181,30 +182,30 @@ void set_freq(uint16_t f){
 void DoMute(uint8_t m){
   // printf("m %i\n",mute);
 
-   mute=m;
-   if(mute!=old_mute){
+    mute=m;
+    if(mute!=old_mute){
 
 //mute by stopping DMA
-     if(mute==1){
+        if(mute==1){
 //         printf("######################### Mute\n");
-        hw_clear_bits(&dma_hw->ch[ctl_dma_chan].al1_ctrl, DMA_CH0_CTRL_TRIG_EN_BITS);
-        hw_clear_bits(&dma_hw->ch[pwm_dma_chan].al1_ctrl, DMA_CH0_CTRL_TRIG_EN_BITS);
-     }
-     if(mute==0){
+            hw_clear_bits(&dma_hw->ch[ctl_dma_chan].al1_ctrl, DMA_CH0_CTRL_TRIG_EN_BITS);
+//            hw_clear_bits(&dma_hw->ch[pwm_dma_chan].al1_ctrl, DMA_CH0_CTRL_TRIG_EN_BITS);
+        }
+        if(mute==0){
 //        printf("########################### Unmute\n");
-        hw_set_bits(&dma_hw->ch[ctl_dma_chan].al1_ctrl, DMA_CH0_CTRL_TRIG_EN_BITS);
-        hw_set_bits(&dma_hw->ch[pwm_dma_chan].al1_ctrl, DMA_CH0_CTRL_TRIG_EN_BITS);
+            hw_set_bits(&dma_hw->ch[ctl_dma_chan].al1_ctrl, DMA_CH0_CTRL_TRIG_EN_BITS);
+            hw_set_bits(&dma_hw->ch[pwm_dma_chan].al1_ctrl, DMA_CH0_CTRL_TRIG_EN_BITS);
 
-        dma_start_channel_mask(1u << ctl_dma_chan); //Start control channel
-     }
-   }  
-   old_mute=mute;
+            dma_start_channel_mask(1u << ctl_dma_chan); //Start control channel
+        }
+    }  
+    old_mute=mute;
 }
 
 
 // DFA in core1
 void Sound_Loop(void){
-   while(1){
-     sleep_us(100);
-   }
+    while(1){
+        sleep_us(100);
+    }
 }
