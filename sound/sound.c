@@ -25,7 +25,7 @@
 #include "sound.h"
 #include "../settings.h"
 
-#include "waveshapes.c"
+#include "waveshapes.h"
 #define WAVTABLESIZE 256
 
 //sound buffer
