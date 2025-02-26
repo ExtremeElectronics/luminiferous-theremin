@@ -315,5 +315,5 @@ const uint8_t waveshapes[WAVMAX][256] = {
 };
 
 char wavenames[16][20]= {
-"Sine\0\n","Square\0\n","Tri\0\n","Sq2\0\n","Sawtooth\0\n","Organ\0\n","Trumpet\0\n","Clarinet\0\n","Bassoon\0\n","Flute\0\n","Spinet\0\n","Organ2\0\n","Harp\0\n","BigLead\0\n","Trombone\0\n","Musicbox\0\n",
+"Sine\0\n","Square\0\n","Triangle\0\n","Sqare2\0\n","Sawtooth\0\n","Organ\0\n","Trumpet\0\n","Clarinet\0\n","Bassoon\0\n","Flute\0\n","Spinet\0\n","Organ2\0\n","Harp\0\n","BigLead\0\n","Trombone\0\n","Musicbox\0\n",
 };
