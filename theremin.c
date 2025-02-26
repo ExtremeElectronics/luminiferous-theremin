@@ -70,7 +70,8 @@ uint8_t sinister=0;
 //Modes
 #define MODEMAX 5 //Vibrato needs more work.
 uint8_t mode=0;
-char  modes[MODEMAX][30]={"Normal\0","Note Only\0","Wob Slow\0","Wob Med\0","Wob Fast\0","Vibrato"};
+//char  modes[MODEMAX][30]={"Normal\0","Note Only\0","Wob Slow\0","Wob Med\0","Wob Fast\0","Vibrato"};
+char  modes[MODEMAX][30]={"Normal\0","Note Only\0","Wob Slow\0","Wob Med\0","Wob Fast\0"};
 
 uint8_t wobulate=0;
 uint8_t vibrato=0;
