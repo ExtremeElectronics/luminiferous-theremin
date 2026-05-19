@@ -7,6 +7,8 @@
 
 //#define WAVMAX 12 // from waveshapes.c
 
+#define WAVMAX 16
+
 uint16_t fring(uint16_t s_in);
 //uint8_t ftext(uint8_t s_in);
 void srandfrommike(void);
