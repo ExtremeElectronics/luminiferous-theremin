@@ -26,7 +26,10 @@
 
 #include "settings.h"
 
+
 #include "sound/sound.h"
+//#include "sound/waveshapes.h"
+
 #include "display/display.h"
 #include "midi.c"
 #include "mapping.c"
@@ -35,7 +38,7 @@
 #include "neopixel.c"
 
 #include "display/assets.h"
-#include "sound/waveshapes.h"
+
 
 #define MINDISTANCE 30
 #define MAXDISTANCE 450 //was 350
@@ -52,6 +55,8 @@ uint8_t extern fmute;
 int8_t wave=0; //from table in waveshapes.c
 struct repeating_timer ftimer;
 float newfreq=1000;
+char extern wavenames[WAVMAX][20];
+
 
 char dtemp[100];
 uint8_t firstdisplay=0;
@@ -70,7 +75,8 @@ uint8_t sinister=0;
 //Modes
 #define MODEMAX 5 //Vibrato needs more work.
 uint8_t mode=0;
-char  modes[MODEMAX][30]={"Normal\0","Note Only\0","Wob Slow\0","Wob Med\0","Wob Fast\0","Vibrato"};
+//char  modes[MODEMAX][30]={"Normal\0","Note Only\0","Wob Slow\0","Wob Med\0","Wob Fast\0","Vibrato"};
+char  modes[MODEMAX][30]={"Normal\0","Note Only\0","Wob Slow\0","Wob Med\0","Wob Fast\0"};
 
 uint8_t wobulate=0;
 uint8_t vibrato=0;
@@ -500,6 +506,7 @@ int main() {
             drawStatusBorder(dtemp,35,0);
           
             sprintf(dtemp,"Voice %s",wavenames[wave]);
+//            printf("Voice %i %s\n",wave,wavenames[wave]);
             drawStatusBorder(dtemp,45,0);
           
             sprintf(dtemp,"Mode  %s",modes[mode]);
